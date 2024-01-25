@@ -3,18 +3,26 @@ package main
 import (
 	"fmt"
 	"net"
+	"sync"
 )
 
 type Server struct {
-	IP   string
-	Port int
+	IP        string
+	Port      int
+	Message   chan string
+	OnlineMap map[string]*User
+	lock      sync.RWMutex
 }
 
 func NewServer(ip string, port int) *Server {
-	return &Server{
-		IP:   ip,
-		Port: port,
+	server := &Server{
+		IP:        ip,
+		Port:      port,
+		OnlineMap: make(map[string]*User),
+		Message:   make(chan string),
 	}
+
+	return server
 }
 
 func (s *Server) Start() {
@@ -24,6 +32,7 @@ func (s *Server) Start() {
 		err.Error()
 	}
 	defer listener.Close()
+	go s.ListenMessage()
 	// 建立链接
 	for {
 		// 循环监听链接建了
@@ -31,11 +40,34 @@ func (s *Server) Start() {
 		if err != nil {
 			err.Error()
 		}
-		// 处理方法
+		// 有一个客户端请求建立了链接
 		go s.Handler(conn)
 	}
 }
 
+func (s *Server) Broadcast(user *User, msg string) {
+	message := fmt.Sprintf("%s：%s", user.Addr, msg)
+	s.Message <- message
+}
+
 func (s *Server) Handler(conn net.Conn) {
-	fmt.Println("连接建立成功...")
+	// 把conn写入onlineMap
+	user := NewUser(conn)
+	s.lock.Lock()
+	s.OnlineMap[user.Addr] = user
+	s.lock.Unlock()
+
+	s.Broadcast(user, "连接成功")
+	select {}
+}
+
+func (s *Server) ListenMessage() {
+	for {
+		msg := <-s.Message
+		s.lock.Lock()
+		for _, cli := range s.OnlineMap {
+			cli.C <- msg
+		}
+		s.lock.Unlock()
+	}
 }
