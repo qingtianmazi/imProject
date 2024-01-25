@@ -46,7 +46,7 @@ func (s *Server) Start() {
 }
 
 func (s *Server) Broadcast(user *User, msg string) {
-	message := fmt.Sprintf("%s：%s", user.Addr, msg)
+	message := fmt.Sprintf("%s：%s\n", user.Addr, msg)
 	s.Message <- message
 }
 

@@ -29,7 +29,7 @@ func NewUser(con net.Conn) *User {
 func (u *User) ListenC() {
 	for {
 		msg := <-u.C
-		fmt.Println("发送消息", msg, "给客户端\n")
+		fmt.Println("发送消息", msg, "给客户端")
 		u.connection.Write([]byte(msg))
 	}
 }
