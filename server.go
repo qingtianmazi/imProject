@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"sync"
 )
@@ -46,7 +47,7 @@ func (s *Server) Start() {
 }
 
 func (s *Server) Broadcast(user *User, msg string) {
-	message := fmt.Sprintf("%s：%s\n", user.Addr, msg)
+	message := fmt.Sprintf("%s:%s\n", user.Name, msg)
 	s.Message <- message
 }
 
@@ -54,10 +55,29 @@ func (s *Server) Handler(conn net.Conn) {
 	// 把conn写入onlineMap
 	user := NewUser(conn)
 	s.lock.Lock()
-	s.OnlineMap[user.Addr] = user
+	s.OnlineMap[user.Name] = user
 	s.lock.Unlock()
 
 	s.Broadcast(user, "连接成功")
+
+	go func() {
+		buf := make([]byte, 10000)
+		for {
+			// 收到来自客户端的消息
+			n, err := conn.Read(buf)
+			if n == 0 {
+				return
+			}
+			if err != nil && err != io.EOF {
+				fmt.Println(err)
+				return
+			}
+			// 广播给所有在线的用户
+			msg := string(buf[:n-1])
+			s.Broadcast(user, msg)
+		}
+	}()
+
 	select {}
 }
 

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"strings"
 )
 
 type User struct {
@@ -14,6 +15,7 @@ type User struct {
 
 func NewUser(con net.Conn) *User {
 	name := con.RemoteAddr().String()
+	name = strings.Split(name, ":")[1]
 	user := &User{
 		Name:       name,
 		Addr:       name,
