@@ -53,19 +53,16 @@ func (s *Server) Broadcast(user *User, msg string) {
 
 func (s *Server) Handler(conn net.Conn) {
 	// 把conn写入onlineMap
-	user := NewUser(conn)
-	s.lock.Lock()
-	s.OnlineMap[user.Name] = user
-	s.lock.Unlock()
-
-	s.Broadcast(user, "连接成功")
-
+	user := NewUser(conn, s)
+	// 用户上线
+	user.Online()
 	go func() {
 		buf := make([]byte, 10000)
 		for {
 			// 收到来自客户端的消息
 			n, err := conn.Read(buf)
 			if n == 0 {
+				user.OffLine()
 				return
 			}
 			if err != nil && err != io.EOF {
@@ -74,7 +71,7 @@ func (s *Server) Handler(conn net.Conn) {
 			}
 			// 广播给所有在线的用户
 			msg := string(buf[:n-1])
-			s.Broadcast(user, msg)
+			user.SendMessage(msg)
 		}
 	}()
 
