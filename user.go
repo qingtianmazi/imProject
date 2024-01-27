@@ -33,7 +33,7 @@ func NewUser(con net.Conn, server *Server) *User {
 func (u *User) ListenC() {
 	for {
 		msg := <-u.C
-		fmt.Println("发送消息", msg, "给客户端")
+		// 从user的channel中获得消息，然后通过连接发送个客户端
 		u.connection.Write([]byte(msg))
 	}
 }
@@ -54,7 +54,20 @@ func (u *User) OffLine() {
 	u.server.Broadcast(u, "下线")
 }
 
+func (u *User) SendMsgP2P(msg string) {
+	u.connection.Write([]byte(msg))
+}
+
 func (u *User) SendMessage(msg string) {
-	// 发送消息
-	u.server.Broadcast(u, msg)
+	if msg == "who" {
+		u.server.lock.Lock()
+		for _, user := range u.server.OnlineMap {
+			uOnlineMsg := fmt.Sprintf("userName:%s 在线\n", user.Name)
+			u.SendMsgP2P(uOnlineMsg)
+		}
+		u.server.lock.Unlock()
+	} else {
+		// 发送消息
+		u.server.Broadcast(u, msg)
+	}
 }

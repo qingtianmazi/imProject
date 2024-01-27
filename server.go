@@ -56,6 +56,7 @@ func (s *Server) Handler(conn net.Conn) {
 	user := NewUser(conn, s)
 	// 用户上线
 	user.Online()
+	// 从客户端读取消息
 	go func() {
 		buf := make([]byte, 10000)
 		for {
